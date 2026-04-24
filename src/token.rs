@@ -22,6 +22,7 @@ pub enum Token {
 #[derive(PartialEq, Debug)]
 enum State {
     Ini,
+    // Fin,
     Lit,
 }
 
@@ -69,10 +70,6 @@ pub fn tokenize(expr: &str) -> Option<Vec<Token>> {
     let mut buf: usize = 0;
 
     loop {
-        let Some((i, c)) = iter.next() else {
-            break Some(tokens);
-        };
-
         match state {
             Ini => {
                 let Some((i, c)) = iter.next() else {
@@ -92,6 +89,11 @@ pub fn tokenize(expr: &str) -> Option<Vec<Token>> {
                 }
             },
             Lit => {
+                let Some((i, c)) = iter.next() else {
+                    tokens.push(Token::Literal(buf, expr.len()));                    
+                    break Some(tokens);
+                };
+
                 if !is_num(c) {
                     tokens.push(Token::Literal(buf, i));
                     state = Ini;
