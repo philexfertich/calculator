@@ -1,21 +1,31 @@
 use std::io;
 
-use calculator::token::tokenize;
+use calculator::lexer::{LexerError, tokenize};
 
 
 fn main() {
-    let mut expression = String::new();
     
-    io::stdin()
-        .read_line(&mut expression)
-        .expect("Failed to read line.");
+    let tokens = loop {
+        let mut expression = String::new();
+        io::stdin()
+            .read_line(&mut expression)
+            .expect("Failed to read line.");
 
-    println!("Input an expression: {}", expression.trim());
+        println!("Input an expression: {}", expression.trim());
 
-
-    let tokens = tokenize(&expression.trim());
+        match tokenize(&expression.trim()) {
+            Ok(tks) => break tks,
+            Err(e) => {
+                match e {
+                    LexerError::EmptyExpr => println!("Enter expression."),
+                    LexerError::UnexpChar(msg) => println!("{}", msg),
+                    LexerError::WrongLiteral(msg) => println!("{}", msg),
+                }
+                continue;
+            }
+        }
+    };
 
     println!("Tokens: {tokens:?}");
-
     
 }

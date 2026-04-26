@@ -33,7 +33,6 @@ fn is_dot(c: char) -> bool {
     c == '.'
 }
 
-
 fn check_punct(c: char) -> Option<Paren> {
     match c {
         '(' => Some(Paren::Left),
@@ -56,12 +55,18 @@ fn check_op(c: char) -> Option<Operation> {
     }
 }
 
+pub enum LexerError {
+    EmptyExpr,
+    UnexpChar(String),
+    WrongLiteral(String),
+}
+
 use State::{ Ini, Lit };
 
 
-pub fn tokenize(expr: &str) -> Option<Vec<Token>> {
+pub fn tokenize(expr: &str) -> Result<Vec<Token>, LexerError> {
     if expr.len() == 0 {
-        return None;
+        return Err(LexerError::EmptyExpr);
     }
 
     let mut iter = expr.chars().enumerate();
@@ -71,14 +76,13 @@ pub fn tokenize(expr: &str) -> Option<Vec<Token>> {
     let mut state = Ini;
 
     let mut buf: usize = 0;
-
     let mut dot: bool = false;
 
     loop {
         match state {
             Ini => {
                 let Some((i, c)) = iter.next() else {
-                    break Some(tokens);
+                    break Ok(tokens);
                 };
 
                 if let Some(op) = check_op(c) {
@@ -89,14 +93,13 @@ pub fn tokenize(expr: &str) -> Option<Vec<Token>> {
                     buf = i;
                     state = Lit;
                 } else if !is_sp(c) {
-                    println!("Wrong character {c} at {i} position.");
-                    break None;
+                    break Err(LexerError::UnexpChar(format!("Wrong character {c} at {i} position.")));
                 }
             },
             Lit => {
                 let Some((i, c)) = iter.next() else {
                     tokens.push(Token::Literal(buf, expr.len()));            
-                    break Some(tokens);
+                    break Ok(tokens);
                 };
 
                 if !is_num(c) && !is_dot(c) {
@@ -112,12 +115,10 @@ pub fn tokenize(expr: &str) -> Option<Vec<Token>> {
                         let mut indices = expr.char_indices().map(|(i, _)| i);
                         let l = indices.nth(buf).unwrap();
                         let r = indices.nth(i).unwrap_or(expr.len());
-                        println!("Wrong literal {} at {i} position", &expr[l..r]);
-                        break None; 
+                        break Err(LexerError::WrongLiteral(format!("Wrong literal {} at {}", &expr[l..r], i))); 
                     }
                 } else if is_dot(c) && dot {
-                    println!("Additional dot added.");
-                    break None;
+                    break Err(LexerError::WrongLiteral(String::from("Additional dot added.")));
                 } else if is_dot(c) {
                     dot = true;
                 }
