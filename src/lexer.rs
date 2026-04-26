@@ -1,29 +1,39 @@
-#[derive(Debug)]
-pub enum Operation {
-    Add,
-    Sub,
-    Mul,
-    Div,
+pub enum Error {
+    EmptyExpr,
+    UnexpChar(String),
+    WrongLiteral(String),
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
+pub enum Op {
+    Positive,
+    Negative,
+    Asterisk,
+    Slash,
+    Exponent,
+    Scientific,
+}
+
+#[derive(Clone, Debug)]
 pub enum Paren {
     Left,
     Right,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Token {
     Literal(usize, usize),
-    Operator(usize, Operation),
-    Paren(usize, Paren)
+    Operator(usize, Op),
+    Paren(usize, Paren),
 }
 
-#[derive(PartialEq, Debug)]
+
 enum State {
     Ini,
     Lit,
 }
+
+use State::{ Ini, Lit };
 
 fn is_num(c: char) -> bool {
     "0123456789".contains(c)
@@ -45,84 +55,95 @@ fn is_sp(c: char) -> bool {
     c == ' '
 }
 
-fn check_op(c: char) -> Option<Operation> {
+fn check_op(c: char) -> Option<Op> {
     match c {
-        '+' => Some(Operation::Add),
-        '-' => Some(Operation::Sub),
-        '*' => Some(Operation::Mul),
-        '/' => Some(Operation::Div),
+        '+' => Some(Op::Positive),
+        '-' => Some(Op::Negative), // ASCII hyphen
+        '−' => Some(Op::Negative), // Unicode minus (U+2212)
+        '*' => Some(Op::Asterisk),
+        '/' => Some(Op::Slash),
+        '^' => Some(Op::Exponent),
+        'E' => Some(Op::Scientific),
         _ => None,
     }
 }
 
-pub enum LexerError {
-    EmptyExpr,
-    UnexpChar(String),
-    WrongLiteral(String),
+pub struct Tokens {
+    expr: String,
+    tokens: Vec<Token>,
 }
 
-use State::{ Ini, Lit };
-
-
-pub fn tokenize(expr: &str) -> Result<Vec<Token>, LexerError> {
-    if expr.len() == 0 {
-        return Err(LexerError::EmptyExpr);
-    }
-
-    let mut iter = expr.chars().enumerate();
-
-    let mut tokens = Vec::<Token>::new();
+impl Tokens {
     
-    let mut state = Ini;
-
-    let mut buf: usize = 0;
-    let mut dot: bool = false;
-
-    loop {
-        match state {
-            Ini => {
-                let Some((i, c)) = iter.next() else {
-                    break Ok(tokens);
-                };
-
-                if let Some(op) = check_op(c) {
-                    tokens.push(Token::Operator(i, op));
-                } else if let Some(punct) = check_punct(c) {
-                    tokens.push(Token::Paren(i, punct));
-                } else if is_num(c) {
-                    buf = i;
-                    state = Lit;
-                } else if !is_sp(c) {
-                    break Err(LexerError::UnexpChar(format!("Wrong character {c} at {i} position.")));
-                }
-            },
-            Lit => {
-                let Some((i, c)) = iter.next() else {
-                    tokens.push(Token::Literal(buf, expr.len()));            
-                    break Ok(tokens);
-                };
-
-                if !is_num(c) && !is_dot(c) {
-                    dot = false;
-                    tokens.push(Token::Literal(buf, i));
-                    state = Ini;
-
+    pub fn from(expr: &str) -> Result<Self, Error> {
+        if expr.len() == 0 {
+            return Err(Error::EmptyExpr);
+        }
+    
+        let mut iter = expr.chars().enumerate();
+    
+        let mut tokens = Vec::<Token>::new();
+        
+        let mut state = Ini;
+    
+        let mut buf: usize = 0;
+        let mut dot: bool = false;
+    
+        loop {
+            match state {
+                Ini => {
+                    let Some((i, c)) = iter.next() else {
+                        break Ok(Self{ expr: expr.to_string(), tokens});
+                    };
+    
                     if let Some(op) = check_op(c) {
                         tokens.push(Token::Operator(i, op));
                     } else if let Some(punct) = check_punct(c) {
                         tokens.push(Token::Paren(i, punct));
+                    } else if is_num(c) {
+                        buf = i;
+                        state = Lit;
                     } else if !is_sp(c) {
-                        let mut indices = expr.char_indices().map(|(i, _)| i);
-                        let l = indices.nth(buf).unwrap();
-                        let r = indices.nth(i).unwrap_or(expr.len());
-                        break Err(LexerError::WrongLiteral(format!("Wrong literal {} at {}", &expr[l..r], i))); 
+                        break Err(Error::UnexpChar(format!("Wrong character {c} at {i} position.")));
                     }
-                } else if is_dot(c) && dot {
-                    break Err(LexerError::WrongLiteral(String::from("Additional dot added.")));
-                } else if is_dot(c) {
-                    dot = true;
+                },
+                Lit => {
+                    let Some((i, c)) = iter.next() else {
+                        tokens.push(Token::Literal(buf, expr.len()));            
+                        break Ok(Self{ expr: expr.to_string(), tokens});
+                    };
+    
+                    if !is_num(c) && !is_dot(c) {
+                        dot = false;
+                        tokens.push(Token::Literal(buf, i));
+                        state = Ini;
+    
+                        if let Some(op) = check_op(c) {
+                            tokens.push(Token::Operator(i, op));
+                        } else if let Some(punct) = check_punct(c) {
+                            tokens.push(Token::Paren(i, punct));
+                        } else if !is_sp(c) {
+                            let mut indices = expr.char_indices().map(|(i, _)| i);
+                            let l = indices.nth(buf).unwrap_or(0);
+                            let r = indices.nth(i).unwrap_or(expr.len());
+                            break Err(Error::WrongLiteral(format!("Wrong literal {} at {}", &expr[l..r], i))); 
+                        }
+                    } else if is_dot(c) && dot {
+                        break Err(Error::WrongLiteral(String::from("Additional dot added.")));
+                    } else if is_dot(c) {
+                        dot = true;
+                    }
                 }
             }
         }
     }
+
+    pub fn get_expr(&self) -> &str {
+        self.expr.as_str()
+    }
+
+    pub fn get_tokens(&self) -> Vec<Token> {
+        self.tokens.clone()
+    }
 }
+

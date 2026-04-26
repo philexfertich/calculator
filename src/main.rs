@@ -1,6 +1,6 @@
 use std::io;
 
-use calculator::lexer::{LexerError, tokenize};
+use calculator::lexer::{ Error, Tokens };
 
 
 fn main() {
@@ -13,19 +13,19 @@ fn main() {
 
         println!("Input an expression: {}", expression.trim());
 
-        match tokenize(&expression.trim()) {
+
+        match Tokens::from(&expression.trim()) {
             Ok(tks) => break tks,
             Err(e) => {
                 match e {
-                    LexerError::EmptyExpr => println!("Enter expression."),
-                    LexerError::UnexpChar(msg) => println!("{}", msg),
-                    LexerError::WrongLiteral(msg) => println!("{}", msg),
+                    Error::EmptyExpr => println!("Enter expression."),
+                    Error::UnexpChar(msg) => println!("{}", msg),
+                    Error::WrongLiteral(msg) => println!("{}", msg),
                 }
                 continue;
             }
         }
     };
 
-    println!("Tokens: {tokens:?}");
-    
+    println!("Tokens: {:?}", tokens.get_tokens());
 }
