@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub enum Error {
     EmptyExpr,
     UnexpChar(String),
@@ -26,7 +27,6 @@ pub enum Token {
     Operator(usize, Op),
     Paren(usize, Paren),
 }
-
 
 enum State {
     Ini,
@@ -146,4 +146,3 @@ impl Tokens {
         self.tokens.clone()
     }
 }
-
