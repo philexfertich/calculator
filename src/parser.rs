@@ -1,41 +1,66 @@
-use crate::Token;
+use crate::{ Delimiter, Token, Tokens };
+use core::slice::Iter;
+use std::{collections::HashMap, f32};
 
-enum Operation {
-    Sum,
-    Sub,
-    Mul,
-    Div,
-    Exp,
-    Sci,
+#[derive(Debug)]
+pub enum Error {
+    NoTokens,
+    WrongToken,
+    NumberExpected,
+    NullToken,
 }
 
-enum Node {
-    Expr(Operation, Box<Node>, Box<Node>),
-    Value(String),
+pub mod op {
+    #[derive(Debug, PartialEq, Eq, Hash)]
+    pub enum Operator {
+        Sum,
+        Sub,
+        Mul,
+        Div,
+        Exp,
+        Sci,
+        Neg,
+        Pos,
+    }
+
+    impl Operator {
+        pub fn have_precedence(&self, op: &Operator) -> std::cmp::Ordering {
+            precedence(self).cmp(&precedence(op))
+        }
+    }
+
+    fn precedence(op: &Operator) -> u8{
+        // The precedence of operators
+        //
+        // 1) NEG POS   <- highest
+        // 2) ^
+        // 3) * / E
+        // 4) - +       <- lowest
+        match op {
+            Operator::Neg => 3,
+            Operator::Pos => 3,
+            Operator::Exp => 2,
+            Operator::Mul => 1,
+            Operator::Div => 1,
+            Operator::Sci => 0,
+            Operator::Sum => 0,
+            Operator::Sub => 0,
+        }
+    }
 }
 
-fn expect(iter: &mut core::slice::Iter<'_, Token>) {
-    iter.next();
+#[derive(Debug)]
+enum Data<T> {
+    Op(op::Operator),
+    Val(T),
 }
 
-fn definition(iter: &mut core::slice::Iter<'_, Token>) -> Node {
-    expect(iter);
+pub fn parse_rpn<'a>(tokens: &'a mut Tokens) -> Result<Vec<Data<f64>>, Error> {
+    let mut iter = tokens.tokens.iter();
+
+    let Some(t) = iter.next() else {
+        return Err(Error::NoTokens);
+    };
     
-    Node::Value(String::new())
-    // for t in iter {
-    //     match t {
-    //         Token::Literal(l, r) => {
-    //             break Node::Value(tokens.get_expr()[])
-    //         },
-    //         Token::Operator(pos, op) => break Node::Value(String::new()),
-    //         Token::Paren(pos, paren) => break Node::Value(String::new()),
-    //     }
-    // }
+    Ok(Vec::new())
 }
-
-// pub fn parse(tokens: Tokens) -> Node {
-    
-//     let mut iter = tokens.get_tokens().iter();
-
-//     definition(&mut iter)
-// }

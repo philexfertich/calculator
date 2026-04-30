@@ -35,14 +35,14 @@ fn check_delimiter(c: char) -> Option<Delimiter> {
         '/' => Some(Slash),
         '^' => Some(Exponent),
         'E' => Some(Scientific),
-        '(' => Some(LeftParen),
-        ')' => Some(RightParen),
+        '(' => Some(Open),
+        ')' => Some(Close),
         _ => None,
     }
 }
 pub struct Tokens<'a> {
     expr: &'a str,
-    tokens: Vec<Token>,
+    pub tokens: Vec<Token>,
 }
 
 impl<'a> Tokens<'a> {
@@ -107,9 +107,5 @@ impl<'a> Tokens<'a> {
 
     pub fn get_expr(&self) -> &str {
         self.expr
-    }
-
-    pub fn get_tokens(&self) -> Vec<Token> {
-        self.tokens.clone()
     }
 }

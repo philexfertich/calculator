@@ -6,8 +6,8 @@ pub enum Delimiter {
     Slash,
     Exponent,
     Scientific,
-    LeftParen,
-    RightParen,
+    Open,
+    Close,
 }
 
 #[derive(Clone, Debug)]
