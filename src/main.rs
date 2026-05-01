@@ -30,5 +30,5 @@ fn main() {
     println!("Tokens: {:?}", tokens.tokens);
 
     let rpn = RPN::from(tokens).expect("Some error occured.");
-    println!("rpn: {rpn:?}");
+    println!("rpn: {:?}", rpn.data);
 }

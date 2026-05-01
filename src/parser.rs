@@ -1,5 +1,5 @@
 use crate::{ Delimiter, Token, Tokens, parser::op::Operator };
-use core::slice::Iter;
+use core::{panic, slice::Iter};
 use std::{cmp::Ordering, collections::HashMap, f32};
 
 #[derive(Debug)]
@@ -12,6 +12,8 @@ pub enum Error {
 }
 
 pub mod op {
+    use std::ops::Neg;
+
     #[derive(Debug, PartialEq, Eq, Hash)]
     pub enum Operator {
         Sum,
@@ -28,7 +30,21 @@ pub mod op {
         pub fn have_precedence(&self, op: &Operator) -> std::cmp::Ordering {
             precedence(self).cmp(&precedence(op))
         }
+
+        pub fn is_left_associative(&self) -> bool {
+            match self {
+                Operator::Neg => false,
+                Operator::Pos => false,
+                Operator::Exp => false,
+                Operator::Mul => true,
+                Operator::Div => true,
+                Operator::Sci => false,
+                Operator::Sum => true,
+                Operator::Sub => true,
+            }
+        }
     }
+
 
     fn precedence(op: &Operator) -> u8{
         // The precedence of operators
@@ -43,7 +59,7 @@ pub mod op {
             Operator::Exp => 2,
             Operator::Mul => 1,
             Operator::Div => 1,
-            Operator::Sci => 0,
+            Operator::Sci => 1,
             Operator::Sum => 0,
             Operator::Sub => 0,
         }
@@ -72,7 +88,7 @@ pub struct RPN {
 //     }
 // }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum StackItem {
     Op(Operator),
     LP,
@@ -80,31 +96,58 @@ pub enum StackItem {
 
 
 impl RPN {
-    pub fn from<'a>(tokens: Tokens) -> Result<Vec<Data>, Error> {
+    fn iterate_stack(stack: &mut Vec<StackItem>, output: &mut Vec<Data>,  op: Operator) {
+        while let Some(si) = dbg!(stack.pop()) {
+            let StackItem::Op(op_2) = si else {
+                stack.push(dbg!(si));
+                break;
+            };
+            
+            println!("Completing");
+            match op_2.have_precedence(&op) {
+                Ordering::Equal => {
+                    println!("{:?} have equal precedence over {:?}", op_2, op);
+                    if op.is_left_associative() {
+                        output.push(Data::Op(op_2));
+                    } else {
+                        stack.push(dbg!(StackItem::Op(op_2)));
+                        break;
+                    }
+                },
+                Ordering::Less => {
+                    println!("{:?} have less precedence over {:?}", op_2, op);
+                    stack.push(dbg!(StackItem::Op(op_2)));
+                    break;
+                }
+                Ordering::Greater => {
+                    println!("{:?} have greater precedence over {:?}", op_2, op);
+                    output.push(Data::Op(op_2));
+                }
+            };
+        }
+        stack.push(dbg!(StackItem::Op(op)));
+    }
+    
+    pub fn from<'a>(tokens: Tokens) -> Result<Self, Error> {
         let iter = tokens.tokens.iter();
 
         let mut stack: Vec<StackItem> = Vec::new();
         let mut output: Vec<Data> = Vec::new();
 
         'token_iter: for token in iter {
+            
+            println!("{stack:?}");
             match token {
                 Token::Delim(_, delim) => {
                     match delim {
-                        Delimiter::Positive => {
-                        },
-                        Delimiter::Negative => {},
-                        Delimiter::Asterisk => {},
-                        Delimiter::Slash => {},
-                        Delimiter::Exponent => {},
-                        Delimiter::Scientific => {},
-                        Delimiter::Open => {
-                            stack.push(StackItem::LP)
-                        },
+                        Delimiter::Positive => RPN::iterate_stack(&mut stack, &mut output, Operator::Sum),
+                        Delimiter::Negative => RPN::iterate_stack(&mut stack, &mut output, Operator::Sub),
+                        Delimiter::Asterisk => RPN::iterate_stack(&mut stack, &mut output, Operator::Mul),
+                        Delimiter::Slash => RPN::iterate_stack(&mut stack, &mut output, Operator::Div),
+                        Delimiter::Exponent => RPN::iterate_stack(&mut stack, &mut output, Operator::Exp),
+                        Delimiter::Scientific => RPN::iterate_stack(&mut stack, &mut output, Operator::Sci),
+                        Delimiter::Open => stack.push(StackItem::LP),
                         Delimiter::Close => {
-                            // let Some(mut op) = stack.pop() else {
-                            //     panic!("Stack is empty and parens not closed.")
-                            // };
-
                             while let Some(op) = stack.pop() {
                                 match op {
                                     StackItem::LP => continue 'token_iter,
@@ -132,7 +175,7 @@ impl RPN {
         }
 
         if !stack.is_empty() {
-            for si in stack {
+            while let Some(si) = stack.pop() {
                 if let StackItem::Op(op) = si {
                     output.push(Data::Op(op));
                 } else {
@@ -141,6 +184,6 @@ impl RPN {
             }
         }
 
-        Ok(output)
+        Ok(RPN{ data: output })
     }
 }
