@@ -1,6 +1,6 @@
 use std::io;
 
-use calculator::{Error, Tokens, parser::op::Operator};
+use calculator::{Error, Tokens, parser::{RPN, op::Operator}};
 
 // use calculator::parser::parse;
 
@@ -8,7 +8,7 @@ use calculator::{Error, Tokens, parser::op::Operator};
 fn main() {
     let mut expression = String::new();
     
-    let mut tokens = loop {
+    let tokens = loop {
         io::stdin()
             .read_line(&mut expression)
             .expect("Failed to read line.");
@@ -28,4 +28,7 @@ fn main() {
         }
     };
     println!("Tokens: {:?}", tokens.tokens);
+
+    let rpn = RPN::from(tokens).expect("Some error occured.");
+    println!("rpn: {rpn:?}");
 }
