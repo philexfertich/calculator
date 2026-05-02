@@ -6,7 +6,7 @@ A parser for arithmetic expressions.
 
 ### Tokenizer
 
-The **tokenizer** was made using state machine computation model. With posible `Liter` (literal) and `Delim` (delimiter) tokens where delimiter has possible variations and all implements `enum` types:
+The **tokenizer** was made using state machine computational model. With posible `Liter` (literal) and `Delim` (delimiter) tokens, all data implement `enum` types. Delimiter has also several possible variations:
 
 ```rust
 pub enum Delimiter {
@@ -24,7 +24,6 @@ pub enum Delimiter {
 ### Parser
 
 To achieve arithmetics expression parsing, it implements shunting-yard algorithm, that is an operator-precedence parser, and as a result it returns data in postfix notation, or reverse polish notation (**RPN**).
-
 
 # Example
 
@@ -65,3 +64,11 @@ for data in rpn.data {
 
 println!("\nExpression result: {}", stack.pop().unwrap());
 ```
+
+# Future
+
+In near future updates it's planned to implement:
+
+- **Unary plus** and **unary minus** tokens support for the parser.
+- Implicit multiplication.
+- Robust error handling.
