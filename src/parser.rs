@@ -12,8 +12,6 @@ pub enum Error {
 }
 
 pub mod op {
-    use std::ops::Neg;
-
     #[derive(Debug, PartialEq, Eq, Hash)]
     pub enum Operator {
         Sum,
@@ -75,18 +73,6 @@ pub enum Data {
 pub struct RPN {
     pub data: Vec<Data>
 }
-
-// fn define_delim(delim: &Delimiter) -> Operator {
-//     match delim {
-//         Delimiter::Positive => ,
-//         Delimiter::Negative => ,
-//         Delimiter::Asterisk => ,
-//         Delimiter::Slash => ,
-//         Delimiter::Exponent => ,
-//         Delimiter::Scientific => ,
-//         _ => ,
-//     }
-// }
 
 #[derive(PartialEq, Debug)]
 pub enum StackItem {
