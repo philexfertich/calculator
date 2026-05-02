@@ -27,10 +27,10 @@ fn main() {
             }
         }
     };
-    println!("Tokens: {:?}", tokens.tokens);
+    println!("\nTokens: {:?}", tokens.tokens);
 
     let rpn = RPN::from(tokens).expect("Some error occured.");
-    println!("rpn: {:?}", rpn.data);
+    println!("\nrpn: {:?}", rpn.data);
 
     let mut stack: Vec<f64> = Vec::new();
 
@@ -54,5 +54,5 @@ fn main() {
         }
     }
 
-    println!("{}", stack.pop().unwrap());
+    println!("\nExpression result: {}", stack.pop().unwrap());
 }

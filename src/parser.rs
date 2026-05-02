@@ -81,16 +81,14 @@ pub enum StackItem {
 
 impl RPN {
     fn iterate_stack(stack: &mut Vec<StackItem>, output: &mut Vec<Data>, op: Operator) {
-        while let Some(si) = dbg!(stack.pop()) {
+        while let Some(si) = stack.pop() {
             let StackItem::Op(op_2) = si else {
                 stack.push(si);
                 break;
             };
 
-            println!("Completing");
             match op_2.have_precedence(&op) {
                 Ordering::Equal => {
-                    println!("{:?} have equal precedence over {:?}", op_2, op);
                     if op.is_left_associative() {
                         output.push(Data::Op(op_2));
                     } else {
@@ -99,12 +97,10 @@ impl RPN {
                     }
                 }
                 Ordering::Less => {
-                    println!("{:?} have less precedence over {:?}", op_2, op);
                     stack.push(StackItem::Op(op_2));
                     break;
                 }
                 Ordering::Greater => {
-                    println!("{:?} have greater precedence over {:?}", op_2, op);
                     output.push(Data::Op(op_2));
                 }
             };
