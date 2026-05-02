@@ -1,18 +1,18 @@
 use std::io;
 
-use calculator::{Error, Tokens, parser::{Data, RPN, op::Operator}};
-
-// use calculator::parser::parse;
-
+use calculator::{
+    Error, Tokens,
+    parser::{Data, RPN, op::Operator},
+};
 
 fn main() {
     let mut expression = String::new();
-    
+
     let tokens = loop {
         io::stdin()
             .read_line(&mut expression)
             .expect("Failed to read line.");
-        
+
         println!("Input an expression: {}", expression.trim());
 
         match Tokens::from(expression.trim()) {

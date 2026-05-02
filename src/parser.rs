@@ -1,6 +1,6 @@
-use crate::{ Delimiter, Token, Tokens, parser::op::Operator };
-use core::{panic, slice::Iter};
-use std::{cmp::Ordering, collections::HashMap, f32};
+use crate::{Delimiter, Token, Tokens, parser::op::Operator};
+use core::panic;
+use std::cmp::Ordering;
 
 #[derive(Debug)]
 pub enum Error {
@@ -43,9 +43,8 @@ pub mod op {
         }
     }
 
-
-    fn precedence(op: &Operator) -> u8{
-        // The precedence of operators
+    fn precedence(op: &Operator) -> u8 {
+        // PEMDAS precedence of operators:
         //
         // 1) NEG POS   <- highest
         // 2) ^
@@ -71,7 +70,7 @@ pub enum Data {
 }
 
 pub struct RPN {
-    pub data: Vec<Data>
+    pub data: Vec<Data>,
 }
 
 #[derive(PartialEq, Debug)]
@@ -80,15 +79,14 @@ pub enum StackItem {
     LP,
 }
 
-
 impl RPN {
-    fn iterate_stack(stack: &mut Vec<StackItem>, output: &mut Vec<Data>,  op: Operator) {
+    fn iterate_stack(stack: &mut Vec<StackItem>, output: &mut Vec<Data>, op: Operator) {
         while let Some(si) = dbg!(stack.pop()) {
             let StackItem::Op(op_2) = si else {
-                stack.push(dbg!(si));
+                stack.push(si);
                 break;
             };
-            
+
             println!("Completing");
             match op_2.have_precedence(&op) {
                 Ordering::Equal => {
@@ -96,13 +94,13 @@ impl RPN {
                     if op.is_left_associative() {
                         output.push(Data::Op(op_2));
                     } else {
-                        stack.push(dbg!(StackItem::Op(op_2)));
+                        stack.push(StackItem::Op(op_2));
                         break;
                     }
-                },
+                }
                 Ordering::Less => {
                     println!("{:?} have less precedence over {:?}", op_2, op);
-                    stack.push(dbg!(StackItem::Op(op_2)));
+                    stack.push(StackItem::Op(op_2));
                     break;
                 }
                 Ordering::Greater => {
@@ -111,9 +109,9 @@ impl RPN {
                 }
             };
         }
-        stack.push(dbg!(StackItem::Op(op)));
+        stack.push(StackItem::Op(op));
     }
-    
+
     pub fn from<'a>(tokens: Tokens) -> Result<Self, Error> {
         let iter = tokens.tokens.iter();
 
@@ -121,42 +119,51 @@ impl RPN {
         let mut output: Vec<Data> = Vec::new();
 
         'token_iter: for token in iter {
-            
-            println!("{stack:?}");
             match token {
-                Token::Delim(_, delim) => {
-                    match delim {
-                        Delimiter::Positive => RPN::iterate_stack(&mut stack, &mut output, Operator::Sum),
-                        Delimiter::Negative => RPN::iterate_stack(&mut stack, &mut output, Operator::Sub),
-                        Delimiter::Asterisk => RPN::iterate_stack(&mut stack, &mut output, Operator::Mul),
-                        Delimiter::Slash => RPN::iterate_stack(&mut stack, &mut output, Operator::Div),
-                        Delimiter::Exponent => RPN::iterate_stack(&mut stack, &mut output, Operator::Exp),
-                        Delimiter::Scientific => RPN::iterate_stack(&mut stack, &mut output, Operator::Sci),
-                        Delimiter::Open => stack.push(StackItem::LP),
-                        Delimiter::Close => {
-                            while let Some(op) = stack.pop() {
-                                match op {
-                                    StackItem::LP => continue 'token_iter,
-                                    StackItem::Op(o) => {
-                                        output.push(Data::Op(o));
-                                    }
-                                };
-                            }
-                            panic!("Parentheses are not closed.");
-                        },
+                Token::Delim(_, delim) => match delim {
+                    Delimiter::Positive => {
+                        RPN::iterate_stack(&mut stack, &mut output, Operator::Sum)
+                    }
+                    Delimiter::Negative => {
+                        RPN::iterate_stack(&mut stack, &mut output, Operator::Sub)
+                    }
+                    Delimiter::Asterisk => {
+                        RPN::iterate_stack(&mut stack, &mut output, Operator::Mul)
+                    }
+                    Delimiter::Slash => RPN::iterate_stack(&mut stack, &mut output, Operator::Div),
+                    Delimiter::Exponent => {
+                        RPN::iterate_stack(&mut stack, &mut output, Operator::Exp)
+                    }
+                    Delimiter::Scientific => {
+                        RPN::iterate_stack(&mut stack, &mut output, Operator::Sci)
+                    }
+                    Delimiter::Open => stack.push(StackItem::LP),
+                    Delimiter::Close => {
+                        while let Some(op) = stack.pop() {
+                            match op {
+                                StackItem::LP => continue 'token_iter,
+                                StackItem::Op(o) => {
+                                    output.push(Data::Op(o));
+                                }
+                            };
+                        }
+                        panic!("Parentheses are not closed.");
                     }
                 },
                 Token::Liter { l, r } => {
                     let mut indices = tokens.get_expr().char_indices().map(|(i, _)| i);
-                    let start = dbg!(indices.nth(*l).unwrap_or_default());
-                    let end = dbg!(indices.nth(dbg!(r - l - 1)).unwrap_or(tokens.get_expr().len()));
-                    
+                    let start = indices.nth(*l).unwrap_or_default();
+                    let end = indices.nth(r - l - 1).unwrap_or(tokens.get_expr().len());
+
                     let Ok(val) = tokens.get_expr()[start..end].parse() else {
-                        panic!("Could not parse a literal {} at {l} {r}", &tokens.get_expr()[start..end]);
+                        panic!(
+                            "Could not parse a literal {} at {l} {r}",
+                            &tokens.get_expr()[start..end]
+                        );
                     };
-                    
+
                     output.push(Data::Val(val));
-                },
+                }
             }
         }
 
@@ -170,6 +177,6 @@ impl RPN {
             }
         }
 
-        Ok(RPN{ data: output })
+        Ok(RPN { data: output })
     }
 }
