@@ -1,6 +1,7 @@
-use crate::{Delimiter, Token, Tokens, parser::op::Operator};
 use core::panic;
 use std::cmp::Ordering;
+use crate::lexer::{Delimiter, Token, Tokens};
+pub use crate::parser::op::Operator;
 
 #[derive(Debug)]
 pub enum Error {
